@@ -36,6 +36,9 @@
         const acceleration = 1; // 加速度
         const friction = 0.5; // 摩擦力
 
+        // 记录鼠标位置
+        const mousePosition = { x: 0, y: 0 };
+
         // 记录按键状态
         const keysPressed = {};
 
@@ -50,112 +53,149 @@
 
         
         function drawShape(x, y, scaleFactor) {
-            // 设置缩放因子，控制图形大小
-            let sf = scaleFactor || 0.5; // 默认缩放因子为0.5
+            const sf = scaleFactor || 0.5;
+            // 旋转中心在画布上的绝对坐标：
+            const cx = x * sf;
+            const cy = (y + 62) * sf;
+            // 计算鼠标相对于中心的角度
+            const dx = mousePosition.x - cx;
+            const dy = mousePosition.y - cy;
+            const angle = Math.atan2(dy, dx);
 
-            // 设置颜色和线条宽度
-            ctx.fillStyle = '#dfddcd'; // 填充颜色
-            ctx.strokeStyle = '#dfddcd'; // 边框颜色
-            ctx.lineWidth = 1 * sf; // 线条宽度也按照比例缩放
+            ctx.save();
+            // 平移到旋转中心，再旋转（+90°若需要）
+            ctx.translate(cx, cy);
+            ctx.rotate(angle + Math.PI/2);
 
-            // 绘制四面体的一个面，坐标根据x,y偏移并乘以缩放因子
+            // 以下用局部坐标绘制各面，所有坐标都相对于 (cx, cy)
+            // 例如原先顶点 (x, y) 在局部是 (0, -62*sf)，但因为已经平移到(cx,cy)并且在旋转后，
+            // 直接用如下局部坐标绘制即可。
+
+            // 设置样式
+            ctx.fillStyle = '#dfddcd';
+            ctx.strokeStyle = '#dfddcd';
+            ctx.lineWidth = 1 * sf;
+
+            // 第一面: 顶点局部坐标
             ctx.beginPath();
-            ctx.moveTo(x * sf, y * sf);
-            ctx.lineTo((x - 20) * sf, (y + 50) * sf);
-            ctx.lineTo(x * sf, (y + 65) * sf);
+            ctx.moveTo(0, -62 * sf);
+            ctx.lineTo(-20 * sf, -12 * sf);
+            ctx.lineTo(0, 3 * sf);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
 
-            // 添加阴影效果，并应用缩放因子
+            // 阴影
             ctx.shadowColor = 'rgba(164,159,138, 0.6)';
             ctx.shadowOffsetX = 3 * sf;
             ctx.shadowOffsetY = 3 * sf;
             ctx.shadowBlur = 3 * sf;
 
-            // 绘制四面体的另一个面，应用缩放因子
+            // 第二面
             ctx.beginPath();
-            ctx.moveTo(x * sf, y * sf);
-            ctx.lineTo((x + 20) * sf, (y + 50) * sf);
-            ctx.lineTo(x * sf, (y + 65) * sf);
+            ctx.moveTo(0, -62 * sf);
+            ctx.lineTo(20 * sf, -12 * sf);
+            ctx.lineTo(0, 3 * sf);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
 
-            // 绘制四面体侧面，应用缩放因子
+            // 侧面1: 顶点 (x-21, y+55)->局部: (-21*sf, (55-62)*sf = -7*sf) 等
             ctx.beginPath();
-            ctx.moveTo((x - 21) * sf, (y + 55) * sf);
-            ctx.lineTo((x - 2) * sf, (y + 70) * sf);
-            ctx.lineTo((x - 2) * sf, (y + 90) * sf);
-            ctx.lineTo((x - 25) * sf, (y + 65) * sf);
+            ctx.moveTo(-21 * sf, -7 * sf);
+            ctx.lineTo(-2 * sf, 8 * sf);   // (x-2, y+70) 局部 ( -2*sf, (70-62)*sf=8*sf )
+            ctx.lineTo(-2 * sf, 28 * sf);  // (x-2, y+90) 局部 ( -2*sf, (90-62)*sf=28*sf )
+            ctx.lineTo(-25 * sf, 3 * sf);  // (x-25, y+65) 局部 (-25*sf, (65-62)*sf=3*sf)
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
 
+            // 侧面2
             ctx.beginPath();
-            ctx.moveTo((x + 21) * sf, (y + 55) * sf);
-            ctx.lineTo((x + 2) * sf, (y + 70) * sf);
-            ctx.lineTo((x + 2) * sf, (y + 90) * sf);
-            ctx.lineTo((x + 25) * sf, (y + 65) * sf);
+            ctx.moveTo(21 * sf, -7 * sf);
+            ctx.lineTo(2 * sf, 8 * sf);
+            ctx.lineTo(2 * sf, 28 * sf);
+            ctx.lineTo(25 * sf, 3 * sf);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
 
-            // 绘制底部面，应用缩放因子
+            // 底部面1: (x+20,y+85)->局部: (20*sf, (85-62)*sf=23*sf)，(x+30,y+85)->(30*sf,23*sf)，(x+30,y+95)->(30*sf,33*sf),(x+20,y+95)->(20*sf,33*sf)
             ctx.beginPath();
-            ctx.moveTo((x + 20) * sf, (y + 85) * sf);
-            ctx.lineTo((x + 30) * sf, (y + 85) * sf);
-            ctx.lineTo((x + 30) * sf, (y + 95) * sf);
-            ctx.lineTo((x + 20) * sf, (y + 95) * sf);
+            ctx.moveTo(20 * sf, 23 * sf);
+            ctx.lineTo(30 * sf, 23 * sf);
+            ctx.lineTo(30 * sf, 33 * sf);
+            ctx.lineTo(20 * sf, 33 * sf);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
 
+            // 底部面2
             ctx.beginPath();
-            ctx.moveTo((x - 20) * sf, (y + 85) * sf);
-            ctx.lineTo((x - 30) * sf, (y + 85) * sf);
-            ctx.lineTo((x - 30) * sf, (y + 95) * sf);
-            ctx.lineTo((x - 20) * sf, (y + 95) * sf);
+            ctx.moveTo(-20 * sf, 23 * sf);
+            ctx.lineTo(-30 * sf, 23 * sf);
+            ctx.lineTo(-30 * sf, 33 * sf);
+            ctx.lineTo(-20 * sf, 33 * sf);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
 
-            // 绘制圆形，应用缩放因子
-            ctx.strokeStyle = '#dfddcd'; // 边框颜色
-            ctx.fillStyle = '#544f3c'; // 填充颜色
+            // 圆：局部 (0,0)，半径 11*sf
+            ctx.strokeStyle = '#dfddcd';
+            ctx.fillStyle = '#544f3c';
             ctx.beginPath();
-            ctx.arc(x * sf, (y + 62) * sf, 11 * sf, 0, Math.PI * 2);
+            ctx.arc(0, 0, 11 * sf, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
-            // 清除阴影效果，避免影响后续绘制
+            // 绘制旋转中心标记（可选）
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-5, 0);
+            ctx.lineTo(5, 0);
+            ctx.moveTo(0, -5);
+            ctx.lineTo(0, 5);
+            ctx.stroke();
+
+            // 清除阴影设置
             ctx.shadowColor = 'transparent';
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             ctx.shadowBlur = 0;
+
+            ctx.restore();
         }
+
 
 
         // 子弹数组
         const bullets = [];
+        let isMouseDown = false;  // 鼠标按下状态
+        let shootTimer = null;     // 发射定时器
+        const SHOOT_INTERVAL = 200; // 发射间隔(ms)
 
         // 子弹类
         class Bullet {
-            constructor(x, y, speed) {
+            constructor(x, y, angle) {
                 this.x = x;
                 this.y = y;
-                this.speed = speed;
+                this.angle = angle;  // 子弹发射角度
+                this.speed = 15;     // 子弹速度
                 this.radius = 5;
             }
 
             update() {
-                this.y -= this.speed;
+                // 根据角度计算x/y方向速度分量
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
             }
 
             draw() {
                 ctx.beginPath();
                 ctx.fillStyle = 'red';
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                //绘制长方形
+                ctx.rect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
                 ctx.fill();
             }
         }
@@ -168,14 +208,48 @@
             keysPressed[event.key] = false;
         });
 
-        // 鼠标点击事件，发射子弹
-        canvas.addEventListener('click', () => {
-            // 子弹从图形中心发射，速度固定
-            const bulletX = position.x;
-            const bulletY = position.y;
-            const bulletSpeed = 15;
-            bullets.push(new Bullet(bulletX, bulletY, bulletSpeed));
+        // 鼠标移动事件，更新鼠标位置
+        canvas.addEventListener('mousemove', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            mousePosition.x = event.clientX - rect.left;
+            mousePosition.y = event.clientY - rect.top;
         });
+
+        // 鼠标按下事件 - 开始连续发射
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0) { // 左键
+                isMouseDown = true;
+                shootBullet(); // 立即发射第一颗子弹
+                // 设置定时器连续发射
+                shootTimer = setInterval(shootBullet, SHOOT_INTERVAL);
+            }
+        });
+
+        // 鼠标抬起事件 - 停止发射
+        canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 0) { // 左键
+                isMouseDown = false;
+                clearInterval(shootTimer);
+            }
+        });
+
+        // 发射子弹函数
+        function shootBullet() {
+            if (!isMouseDown) return;
+            
+            const scaleFactor = 0.7; // 与drawShape一致
+            // 计算旋转中心坐标(实际发射点)
+            const emitX = position.x * scaleFactor;
+            const emitY = (position.y + 62) * scaleFactor;
+            
+            // 计算发射点到鼠标位置的角度
+            const dx = mousePosition.x - emitX;
+            const dy = mousePosition.y - emitY;
+            const angle = Math.atan2(dy, dx);
+            
+            // 创建新子弹(从旋转中心发射)
+            bullets.push(new Bullet(emitX, emitY, angle));
+        }
 
         function draw(timestamp) {
             if (!lastFrameTime) lastFrameTime = timestamp;
