@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星空背景</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    .container {
+        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
+    }
+</style>
+
+<body>
+    <div class="container">
+        <canvas id="canvas"></canvas>
+    </div>
+    <script>
+        function random(min, max) {
+            if (arguments.length < 2) {
+                max = min
+                min = 0
+            }
+
+            if (min > max) {
+                var hold = max
+                max = min
+                min = hold
+            }
+
+            return Math.floor(Math.random() * (max - min + 1)) + min
+        }
+
+        function maxOrbit(x, y) {
+            var max = Math.max(x, y),
+                diameter = Math.round(Math.sqrt(max * max + max * max))
+            return diameter / 2
+            //星星移动范围，值越大范围越小，
+        }
+        const canvas = document.getElementById('canvas')
+        const ctx = canvas.getContext('2d')
+        // 屏幕的长宽
+        const w = (canvas.width = window.innerWidth)
+        const h = (canvas.height = window.innerHeight)
+        // 色度
+        const hue = 217,
+        // 星星数量
+            maxStars = 2500
+        // 存放星星的数组
+        let stars = []
+        // 创建星星画布
+        let canvas2 = document.createElement('canvas')
+        let starCtx = canvas2.getContext('2d')
+        // 星星画布的大小
+        starCtx.width = 100
+        starCtx.height = 100
+        // 半径
+        let r = 50
+        // 设置渐变色
+        let gradient2 = starCtx.createRadialGradient(r, r, 0, r, r, r)
+        gradient2.addColorStop(0.025, '#CCC')
+        gradient2.addColorStop(0.1, 'hsl(' + hue + ', 61%, 33%)')
+        gradient2.addColorStop(0.25, 'hsl(' + hue + ', 64%, 6%)')
+        gradient2.addColorStop(1, 'transparent')
+        // 渐变色添加到星星画布
+        starCtx.fillStyle = gradient2
+        starCtx.beginPath()
+        // 绘制圆
+        starCtx.arc(r, r, r, 0, Math.PI * 2)
+        // 填充
+        starCtx.fill()
+
+        // 创建星星
+        let Star = function () {
+            // 轨道半径
+            this.orbitRadius = random(maxOrbit(w, h))
+            // 星星的大小（设置半径)
+            this.radius = random(60, this.orbitRadius) / 8
+            // 屏幕中心
+            this.orbitX = w / 2
+            this.orbitY = h / 2
+            // 初始的随机位置
+            this.timePassed = random(0, maxStars)
+            // 后续的移动速度
+            this.speed = random(this.orbitRadius) / 50000
+            // 随机透明度（为了让星星可以明灭不定）
+            this.alpha = random(2, 10) / 10
+            // 添加星星 this指代本身Star添加到星星数组
+            stars.push(this)
+        }
+        // 将星星放在主画布上，在Star的原型上设置一方法
+        // 方便后续调用
+        Star.prototype.draw = function () {
+            // 为了让星星围绕中心轴旋转
+            let x = Math.sin(this.timePassed) * this.orbitRadius + this.orbitX,
+                y = Math.cos(this.timePassed) * this.orbitRadius + this.orbitY,
+                // 随机一个值，根据这个值改变星星的透明度，可以控制星星闪烁
+                twinkle = random(10)
+            // 实现星星闪烁的方法，修改透明度
+            if (twinkle === 1 && this.alpha > 0) {
+                this.alpha -= 0.05
+            } else if (twinkle === 2 && this.alpha < 1) {
+                this.alpha += 0.05
+            }
+
+            // 设置全局的透明度
+            ctx.globalAlpha = this.alpha
+            // 将子画布星星绘制在主画布上
+            ctx.drawImage(
+                canvas2,
+                x - this.radius / 2,
+                y - this.radius / 2,
+                this.radius,
+                this.radius
+            )
+            // 不断修改星星的位置形成动态
+            this.timePassed += this.speed
+        }
+
+        // 创建星星
+        for (var i = 0; i < maxStars; i++) {
+            new Star()
+        }
+
+        function main() {
+            ctx.globalCompositeOperation = 'source-over'
+            ctx.globalAlpha = 0.5 //尾巴
+            // 画布颜色
+            ctx.fillStyle = 'hsla(' + hue + ', 64%, 6%, 2)'
+            // 填充整个画布
+            ctx.fillRect(0, 0, w, h)
+
+            ctx.globalCompositeOperation = 'lighter'
+            // 调用draw方法，将星星绘制在图片上
+            for (var i = 1, l = stars.length; i < l; i++) {
+                stars[i].draw()
+            }
+            // 可以先把这个方法注释掉，可以看到背景上的星星
+            // 下面是执行动画的方法S
+            window.requestAnimationFrame(main)
+        }
+        main()
+    </script>
+</body>
+
+</html>
