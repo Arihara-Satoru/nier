@@ -182,7 +182,7 @@
                 this.y = y;
                 this.angle = angle;  // 子弹发射角度
                 this.speed = 15;     // 子弹速度
-                this.radius = 5;
+                this.radius = 9;
             }
 
             update() {
@@ -192,11 +192,18 @@
             }
 
             draw() {
+                ctx.save();
+                // 平移到子弹中心并旋转
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                
                 ctx.beginPath();
-                ctx.fillStyle = 'red';
-                //绘制长方形
-                ctx.rect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+                ctx.fillStyle = '#e7dab7';
+                // 绘制旋转后的长方形(相对于旋转中心)
+                ctx.rect(-this.radius, -this.radius, this.radius * 5, this.radius * 2);
                 ctx.fill();
+                
+                ctx.restore();
             }
         }
 
