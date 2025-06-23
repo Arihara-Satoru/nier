@@ -173,7 +173,7 @@
         const bullets = [];
         let isMouseDown = false;  // 鼠标按下状态
         let shootTimer = null;     // 发射定时器
-        const SHOOT_INTERVAL = 200; // 发射间隔(ms)
+        const SHOOT_INTERVAL = 120; // 发射间隔(ms)
 
         // 子弹类
         class Bullet {
@@ -196,13 +196,37 @@
                 // 平移到子弹中心并旋转
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
-                
-                ctx.beginPath();
-                ctx.fillStyle = '#e7dab7';
+
+                // 创建一个线性渐变
+                let gradient = ctx.createLinearGradient(-this.radius * 2.5, -this.radius, this.radius * 2.5, this.radius);
+                gradient.addColorStop(0, '#fff'); // 开始颜色为白色
+                gradient.addColorStop(1, '#e7dab7'); // 结束颜色为 #e7dab7
+
+                // 设置填充样式为渐变
+                ctx.fillStyle = gradient;
+
+                // 光晕设置：在填充前启用 shadow
+                ctx.shadowColor = 'rgba(176,144,96, 1)'; // 发光颜色，半透明
+                ctx.shadowBlur = 60;    // 模糊半径，根据需求调大或调小
+                ctx.shadowOffsetX = 0;  // 不需要偏移，光晕四周均匀
+                ctx.shadowOffsetY = 0;
+
                 // 绘制旋转后的长方形(相对于旋转中心)
-                ctx.rect(-this.radius, -this.radius, this.radius * 5, this.radius * 2);
+                ctx.beginPath();
+                ctx.rect(-this.radius * 2.5, -this.radius, this.radius * 5, this.radius * 2);
                 ctx.fill();
-                
+
+                // 如果想让边缘也有发光，可以先描边
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.stroke();
+
+                // 画完后关闭 shadow，以免影响后续绘制
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+
                 ctx.restore();
             }
         }
