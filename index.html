@@ -207,8 +207,32 @@
             }
         }
 
-        // 创建爆炸效果
-        function createExplosion(x, y, count = 100) {
+        // 创建文字散开爆炸效果
+        function createTextExplosion(enemy) {
+            const text = enemy.text;
+            const size = enemy.size;
+            const color = enemy.color;
+            
+            // 创建临时canvas测量文字
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.font = `${size}px Arial`;
+            const textWidth = tempCtx.measureText(text).width;
+            
+            // 在文字范围内生成粒子
+            for (let i = 0; i < text.length * 10; i++) {
+                // 在文字范围内随机位置
+                const x = enemy.x - textWidth/2 + Math.random() * textWidth;
+                const y = enemy.y - size/2 + Math.random() * size;
+                
+                const particle = new Particle(x, y);
+                particle.color = color; // 使用敌人颜色
+                particles.push(particle);
+            }
+        }
+
+        // 创建中心点爆炸效果
+        function createExplosion(x, y, count = 10) {
             for (let i = 0; i < count; i++) {
                 particles.push(new Particle(x, y));
             }
@@ -219,7 +243,7 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.text = "敌人11111111";
+                this.text = "敌1111111111111111";
                 this.size = 30;  // 增大size以适应更长的文本
                 this.speed = 1;
                 this.color = '#ff5555';
@@ -282,9 +306,6 @@
                 
                 // 减少生命值
                 this.health--;
-                
-                // 创建小爆炸效果
-                createSmallExplosion(this.x, this.y);
                 
                 // 返回是否死亡
                 return this.health <= 0;
@@ -353,13 +374,25 @@
                         bullet.y + bullet.radius > enemyBox.top && 
                         bullet.y - bullet.radius < enemyBox.bottom) {
                         
+                        // 计算碰撞点(子弹中心与敌人矩形的交点)
+                        let collisionX = bullet.x;
+                        let collisionY = bullet.y;
+                        
+                        // 限制碰撞点在敌人矩形范围内
+                        const enemyBox = enemy.getBoundingBox();
+                        collisionX = Math.max(enemyBox.left, Math.min(enemyBox.right, collisionX));
+                        collisionY = Math.max(enemyBox.top, Math.min(enemyBox.bottom, collisionY));
+                        
                         // 敌人被击中
                         const isDead = enemy.hit();
                         
                         if (isDead) {
-                            // 敌人死亡，创建爆炸效果
-                            createExplosion(enemy.x, enemy.y);
+                            // 敌人死亡，创建文字散开爆炸效果
+                            createTextExplosion(enemy);
                             enemies.splice(j, 1);
+                        } else {
+                            // 敌人被击中但未死亡，在碰撞点创建小爆炸
+                            createSmallExplosion(collisionX, collisionY);
                         }
                         
                         // 移除子弹
