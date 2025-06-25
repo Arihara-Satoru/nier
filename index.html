@@ -5,20 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <style>
-        *{
+        html, body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
         }
-        body{
+
+        canvas {
+            display: block;
             width: 100vw;
             height: 100vh;
-            text-align: center;
-        }
-        canvas{
-            border: 2px solid black;
-            background-color: rgb(2, 2, 2);
-            display: block;
+            background-color: #000;
         }
     </style>
 </head>
@@ -304,12 +303,11 @@
                     const moveX = Math.cos(this.direction) * this.currentSpeed;
                     let moveY = Math.sin(this.direction) * this.currentSpeed;
 
-                    // 在50%-60%区间仅对向下移动减速
-                    const maxY = canvas.height * 0.6 - this.size;
-                    if (this.y > canvas.height * 0.5 - this.size && moveY > 0) {
-                        // 计算减速因子(50%时为1，60%时为0)
-                        const slowdownFactor = 1 - (this.y - canvas.height * 0.5 + this.size) / (canvas.height * 0.1);
-                        moveY *= slowdownFactor;
+                    // 对向下移动应用自然衰减(从50%高度开始)
+                    if (moveY > 0 && this.y > canvas.height * 0.5) {
+                        // 使用平滑的指数衰减函数
+                        const decayFactor = Math.exp(-(this.y - canvas.height * 0.5) / 100);
+                        moveY *= decayFactor;
                     }
 
                     // 应用移动
@@ -317,11 +315,11 @@
                     this.y += moveY;
                 }
 
-                // 边界检查(限制在画布0-60%高度活动)
+                // 基本边界检查
                 if (this.x < this.size) this.x = this.size;
                 if (this.x > canvas.width - this.size) this.x = canvas.width - this.size;
                 if (this.y < this.size) this.y = this.size;
-                if (this.y > canvas.height * 0.6 - this.size) this.y = canvas.height * 0.6 - this.size;
+                if (this.y > canvas.height - this.size) this.y = canvas.height - this.size;
 
                 // 更新抖动效果
                 if (this.shakeTimer > 0) {
@@ -616,6 +614,12 @@
             // 更新位置
             position.x += velocity.x;
             position.y += velocity.y;
+
+            // 限制玩家在屏幕范围内移动
+            const playerWidth = 50; // 玩家角色宽度估计值
+            const playerHeight = 100; // 玩家角色高度估计值
+            position.x = Math.max(playerWidth/2, Math.min(canvas.clientWidth - playerWidth/2, position.x));
+            position.y = Math.max(playerHeight/2, Math.min(canvas.clientHeight - playerHeight/2, position.y));
 
             ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布
 
