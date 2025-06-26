@@ -2,31 +2,79 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimum-scale=1.0">
     <title>Document</title>
     <style>
         html, body {
             margin: 0;
             padding: 0;
-            overflow: hidden;
             height: 100%;
             width: 100%;
         }
 
         canvas {
             display: block;
-            width: 100vw;
-            height: 100vh;
             background-color: #000;
         }
     </style>
 </head>
 <body>
-    <canvas id="game" width="1920" height="1080"></canvas>
+    <canvas id="game"></canvas>
 
     <script>
         const canvas = document.getElementById('game')
         const ctx = canvas.getContext('2d')
+        
+        // 基准分辨率
+        const BASE_WIDTH = 1920;
+        const BASE_HEIGHT = 1080;
+        
+        // 设置canvas缩放
+        function setupCanvasScaling() {
+            // 使canvas元素填满整个视口
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            
+            function updateScale() {
+                // 计算缩放比例(保持宽高比)
+                const scaleX = window.innerWidth / BASE_WIDTH;
+                const scaleY = window.innerHeight / BASE_HEIGHT;
+                const scale = Math.min(scaleX, scaleY);
+                
+                // 设置canvas实际尺寸为基准分辨率
+                canvas.width = BASE_WIDTH;
+                canvas.height = BASE_HEIGHT;
+                
+                // 应用CSS缩放和居中
+                canvas.style.transform = `scale(${scale})`;
+                canvas.style.transformOrigin = 'center';
+                
+                // 计算并应用边距以居中
+                const marginX = (window.innerWidth - BASE_WIDTH * scale) / 2;
+                const marginY = (window.innerHeight - BASE_HEIGHT * scale) / 2;
+                canvas.style.marginLeft = `${marginX}px`;
+                canvas.style.marginTop = `${marginY}px`;
+            }
+            
+            updateScale();
+            window.addEventListener('resize', updateScale);
+        }
+        
+        setupCanvasScaling();
+        
+        // 禁用快捷键缩放
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '0' || e.key === '=')) {
+                e.preventDefault();
+            }
+        });
+        
+        // 禁用鼠标滚轮缩放
+        document.addEventListener('wheel', function(e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
 
         // 定义初始位置和移动速度
         const position = { x: 50, y: 50 };
@@ -525,11 +573,20 @@
             keysPressed[event.key] = false;
         });
 
-        // 鼠标移动事件，更新鼠标位置
+        // 鼠标移动事件，更新鼠标位置（考虑canvas缩放和居中）
         canvas.addEventListener('mousemove', (event) => {
             const rect = canvas.getBoundingClientRect();
-            mousePosition.x = event.clientX - rect.left;
-            mousePosition.y = event.clientY - rect.top;
+            // 计算缩放比例
+            const scale = Math.min(
+                window.innerWidth / BASE_WIDTH,
+                window.innerHeight / BASE_HEIGHT
+            );
+            // 计算画布在视口中的实际位置
+            const canvasLeft = (window.innerWidth - BASE_WIDTH * scale) / 2;
+            const canvasTop = (window.innerHeight - BASE_HEIGHT * scale) / 2;
+            // 转换鼠标坐标为canvas内部坐标
+            mousePosition.x = (event.clientX - canvasLeft) / scale;
+            mousePosition.y = (event.clientY - canvasTop) / scale;
         });
 
         // 鼠标按下事件 - 开始连续发射
@@ -615,11 +672,11 @@
             position.x += velocity.x;
             position.y += velocity.y;
 
-            // 限制玩家在屏幕范围内移动
+            // 限制玩家在屏幕范围内移动(使用基准分辨率)
             const playerWidth = 50; // 玩家角色宽度估计值
             const playerHeight = 100; // 玩家角色高度估计值
-            position.x = Math.max(playerWidth/2, Math.min(canvas.clientWidth - playerWidth/2, position.x));
-            position.y = Math.max(playerHeight/2, Math.min(canvas.clientHeight - playerHeight/2, position.y));
+            position.x = Math.max(playerWidth/2, Math.min(BASE_WIDTH*1.4 - playerWidth/2, position.x));
+            position.y = Math.max(playerHeight/2, Math.min(BASE_HEIGHT*1.4 - playerHeight/2, position.y));
 
             ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布
 
