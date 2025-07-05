@@ -109,11 +109,19 @@
         let lastFpsUpdate = performance.now();
 
         
-        function drawShape(x, y, scaleFactor) {
+function drawShape(x, y, scaleFactor) {
             const sf = scaleFactor || 0.5;
+            // 应用角色震动效果
+            let shakeX = 0;
+            let shakeY = 0;
+            if (playerShake.timer > 0) {
+                shakeX = (Math.random() * 2 - 1) * playerShake.intensity;
+                shakeY = (Math.random() * 2 - 1) * playerShake.intensity;
+                playerShake.timer--;
+            }
             // 旋转中心在画布上的绝对坐标：
-            const cx = x * sf;
-            const cy = (y + 62) * sf;
+            const cx = x * sf + shakeX;
+            const cy = (y + 62) * sf + shakeY;
             // 计算鼠标相对于中心的角度
             const dx = mousePosition.x - cx;
             const dy = mousePosition.y - cy;
@@ -243,6 +251,11 @@
 
         // 玩家生命值
         let playerHealth = 3;
+        // 玩家震动状态
+        let playerShake = {
+            timer: 0,
+            intensity: 0
+        };
         // 游戏状态
         let gameOver = false;
         // 游戏结束界面状态
@@ -620,11 +633,13 @@
                     // 创建玩家被击中效果
                     createSmallExplosion(enemyBullet.x, enemyBullet.y, 30);
                     
-                    // 触发屏幕震动
+                    // 触发屏幕震动和角色震动
                     canvas.classList.add('shake');
                     setTimeout(() => {
                         canvas.classList.remove('shake');
                     }, 500);
+                    playerShake.timer = 30; // 30帧震动
+                    playerShake.intensity = 5; // 震动强度
                     
                     // 检查游戏是否结束
                     if (playerHealth <= 0) {
