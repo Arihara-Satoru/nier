@@ -35,29 +35,21 @@
             canvas.style.width = '100%';
             canvas.style.height = '100%';
             
-            function updateScale() {
-                // 计算缩放比例(保持宽高比)
-                const scaleX = window.innerWidth / BASE_WIDTH;
-                const scaleY = window.innerHeight / BASE_HEIGHT;
-                const scale = Math.min(scaleX, scaleY);
-                
-                // 设置canvas实际尺寸为基准分辨率
-                canvas.width = BASE_WIDTH;
-                canvas.height = BASE_HEIGHT;
-                
-                // 应用CSS缩放和居中
-                canvas.style.transform = `scale(${scale})`;
-                canvas.style.transformOrigin = 'center';
-                
-                // 计算并应用边距以居中
-                const marginX = (window.innerWidth - BASE_WIDTH * scale) / 2;
-                const marginY = (window.innerHeight - BASE_HEIGHT * scale) / 2;
-                canvas.style.marginLeft = `${marginX}px`;
-                canvas.style.marginTop = `${marginY}px`;
-            }
+            // 设置canvas实际尺寸为基准分辨率
+            canvas.width = BASE_WIDTH;
+            canvas.height = BASE_HEIGHT;
             
-            updateScale();
-            window.addEventListener('resize', updateScale);
+            // 不需要额外的缩放变换
+            canvas.style.transform = 'none';
+            canvas.style.transformOrigin = 'top left';
+            canvas.style.margin = '0';
+            
+            // 添加resize事件监听器以保持布局
+            window.addEventListener('resize', function() {
+                // 保持canvas元素填满视口
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+            });
         }
         
         setupCanvasScaling();
@@ -573,20 +565,14 @@
             keysPressed[event.key] = false;
         });
 
-        // 鼠标移动事件，更新鼠标位置（考虑canvas缩放和居中）
+        // 鼠标移动事件，更新鼠标位置
         canvas.addEventListener('mousemove', (event) => {
+            // 获取canvas的边界矩形
             const rect = canvas.getBoundingClientRect();
-            // 计算缩放比例
-            const scale = Math.min(
-                window.innerWidth / BASE_WIDTH,
-                window.innerHeight / BASE_HEIGHT
-            );
-            // 计算画布在视口中的实际位置
-            const canvasLeft = (window.innerWidth - BASE_WIDTH * scale) / 2;
-            const canvasTop = (window.innerHeight - BASE_HEIGHT * scale) / 2;
-            // 转换鼠标坐标为canvas内部坐标
-            mousePosition.x = (event.clientX - canvasLeft) / scale;
-            mousePosition.y = (event.clientY - canvasTop) / scale;
+            
+            // 计算鼠标在canvas中的坐标(考虑拉伸后的canvas尺寸)
+            mousePosition.x = (event.clientX - rect.left) / rect.width * canvas.width;
+            mousePosition.y = (event.clientY - rect.top) / rect.height * canvas.height;
         });
 
         // 鼠标按下事件 - 开始连续发射
@@ -675,8 +661,8 @@
             // 限制玩家在屏幕范围内移动(使用基准分辨率)
             const playerWidth = 50; // 玩家角色宽度估计值
             const playerHeight = 100; // 玩家角色高度估计值
-            position.x = Math.max(playerWidth/2, Math.min(BASE_WIDTH*1.4 - playerWidth/2, position.x));
-            position.y = Math.max(playerHeight/2, Math.min(BASE_HEIGHT*1.4 - playerHeight/2, position.y));
+            position.x = Math.max(0, Math.min(BASE_WIDTH*1.4, position.x));
+            position.y = Math.max(0, Math.min(BASE_HEIGHT*1.4 - playerHeight, position.y));
 
             ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布
 
