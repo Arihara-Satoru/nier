@@ -10,11 +10,30 @@
             padding: 0;
             height: 100%;
             width: 100%;
+            overflow: hidden;
         }
 
         canvas {
             display: block;
             background-color: #000;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(0, 0); }
+            10% { transform: translate(-1px, 1px); }
+            20% { transform: translate(1px, -1px); }
+            30% { transform: translate(-1px, -1px); }
+            40% { transform: translate(1px, 1px); }
+            50% { transform: translate(-1px, 1px); }
+            60% { transform: translate(1px, -1px); }
+            70% { transform: translate(-1px, -1px); }
+            80% { transform: translate(1px, 1px); }
+            90% { transform: translate(-1px, 1px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .shake {
+            animation: shake 0.3s linear;
         }
     </style>
 </head>
@@ -209,10 +228,25 @@
 
         // 子弹数组
         const bullets = [];
+        // 敌人子弹数组
+        const enemyBullets = [];
         // 敌人数组
         const enemies = [];
         // 粒子数组(用于爆炸效果)
         const particles = [];
+        // 屏幕震动控制
+        let screenShake = {
+            intensity: 0,
+            duration: 0,
+            maxDuration: 10
+        };
+
+        // 玩家生命值
+        let playerHealth = 3;
+        // 游戏状态
+        let gameOver = false;
+        // 游戏结束界面状态
+        let gameOverChoice = null;
         let isMouseDown = false;  // 鼠标按下状态
         let shootTimer = null;     // 发射定时器
         const SHOOT_INTERVAL = 120; // 发射间隔(ms)
@@ -432,6 +466,27 @@
                     bottom: this.y + height/2
                 };
             }
+
+            // 发射子弹
+            shoot() {
+                // 精英敌人有50%几率发射红色子弹，50%几率发射橙色子弹
+                // 普通敌人只发射橙色子弹
+                const type = this.isElite ? 
+                    (Math.random() > 0.5 ? 'red' : 'orange') : 'orange';
+                
+                // 计算朝向玩家的角度
+                const playerX = position.x * 0.7;
+                const playerY = (position.y + 62) * 0.7;
+                const dx = playerX - this.x;
+                const dy = playerY - this.y;
+                const angle = Math.atan2(dy, dx);
+                
+                // 创建新子弹
+                enemyBullets.push(new EnemyBullet(this.x, this.y, angle, type));
+                
+                // 返回子弹类型用于音效等
+                return type;
+            }
         }
 
         // 创建小爆炸效果(命中时)
@@ -489,43 +544,93 @@
 
         // 碰撞检测
         function checkCollisions() {
+            // 检测玩家子弹与敌人碰撞
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const bullet = bullets[i];
                 
+                // 检测玩家子弹与敌人碰撞
                 for (let j = enemies.length - 1; j >= 0; j--) {
                     const enemy = enemies[j];
                     const enemyBox = enemy.getBoundingBox();
                     
-                    // 矩形碰撞检测
                     if (bullet.x + bullet.radius > enemyBox.left && 
                         bullet.x - bullet.radius < enemyBox.right &&
                         bullet.y + bullet.radius > enemyBox.top && 
                         bullet.y - bullet.radius < enemyBox.bottom) {
                         
-                        // 计算碰撞点(子弹中心与敌人矩形的交点)
                         let collisionX = bullet.x;
                         let collisionY = bullet.y;
-                        
-                        // 限制碰撞点在敌人矩形范围内
                         collisionX = Math.max(enemyBox.left, Math.min(enemyBox.right, collisionX));
                         collisionY = Math.max(enemyBox.top, Math.min(enemyBox.bottom, collisionY));
                         
-                        // 敌人被击中
                         const isDead = enemy.hit();
                         
                         if (isDead) {
-                            // 敌人死亡，创建文字散开爆炸效果
                             createTextExplosion(enemy);
                             enemies.splice(j, 1);
                         } else {
-                            // 敌人被击中但未死亡，在碰撞点创建小爆炸
                             createSmallExplosion(collisionX, collisionY);
                         }
                         
-                        // 移除子弹
                         bullets.splice(i, 1);
-                        break; // 子弹已经消失，跳出内层循环
+                        break;
                     }
+                }
+                
+                // 检测玩家子弹与橙色敌人子弹碰撞
+                for (let k = enemyBullets.length - 1; k >= 0; k--) {
+                    const enemyBullet = enemyBullets[k];
+                    if (enemyBullet.type === 'orange') {
+                        const dx = bullet.x - enemyBullet.x;
+                        const dy = bullet.y - enemyBullet.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < bullet.radius + enemyBullet.radius) {
+                            // 创建碰撞爆炸效果
+                            createSmallExplosion(
+                                (bullet.x + enemyBullet.x) / 2,
+                                (bullet.y + enemyBullet.y) / 2,
+                                15
+                            );
+                            bullets.splice(i, 1);
+                            enemyBullets.splice(k, 1);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // 检测玩家与敌人子弹碰撞
+            const playerX = position.x * 0.7;
+            const playerY = (position.y + 62) * 0.7;
+            const playerRadius = 20; // 玩家碰撞半径
+            
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                const enemyBullet = enemyBullets[i];
+                const dx = playerX - enemyBullet.x;
+                const dy = playerY - enemyBullet.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < playerRadius + enemyBullet.radius) {
+                    // 玩家被击中
+                    playerHealth--;
+                    enemyBullets.splice(i, 1);
+                    createSmallExplosion(enemyBullet.x, enemyBullet.y, 20);
+                    
+                    // 创建玩家被击中效果
+                    createSmallExplosion(enemyBullet.x, enemyBullet.y, 30);
+                    
+                    // 触发屏幕震动
+                    canvas.classList.add('shake');
+                    setTimeout(() => {
+                        canvas.classList.remove('shake');
+                    }, 500);
+                    
+                    // 检查游戏是否结束
+                    if (playerHealth <= 0) {
+                        gameOver = true;
+                    }
+                    break;
                 }
             }
         }
@@ -560,7 +665,7 @@
             ctx.restore();
         }
 
-        // 子弹类
+        // 玩家子弹类
         class Bullet {
             constructor(x, y, angle) {
                 this.x = x;
@@ -616,6 +721,32 @@
             }
         }
 
+        // 敌人子弹类
+        class EnemyBullet {
+            constructor(x, y, angle, type) {
+                this.x = x;
+                this.y = y;
+                this.angle = angle;
+                this.speed = 5;  // 子弹速度
+                this.radius = 25; // 子弹半径
+                this.type = type; // 'red'或'orange'
+            }
+
+            update() {
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.fillStyle = this.type === 'red' ? '#ff0000' : '#ff9900';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
         document.addEventListener('keydown', (event) => {
             keysPressed[event.key] = true;
         });
@@ -644,11 +775,39 @@
             }
         });
 
-        // 鼠标抬起事件 - 停止发射
+        // 鼠标抬起事件 - 停止发射或处理游戏结束界面
         canvas.addEventListener('mouseup', (e) => {
             if (e.button === 0) { // 左键
-                isMouseDown = false;
-                clearInterval(shootTimer);
+                if (gameOver) {
+                    // 获取鼠标位置
+                    const rect = canvas.getBoundingClientRect();
+                    const mouseX = (e.clientX - rect.left) / rect.width * canvas.width;
+                    const mouseY = (e.clientY - rect.top) / rect.height * canvas.height;
+                    
+                    // 检查是否点击了"是"按钮
+                    if (mouseX > canvas.width/2 - 150 && mouseX < canvas.width/2 - 30 &&
+                        mouseY > canvas.height/2 + 20 && mouseY < canvas.height/2 + 70) {
+                        // 停止游戏
+                        return;
+                    }
+                    
+                    // 检查是否点击了"否"按钮
+                    if (mouseX > canvas.width/2 + 30 && mouseX < canvas.width/2 + 150 &&
+                        mouseY > canvas.height/2 + 20 && mouseY < canvas.height/2 + 70) {
+                        // 重置游戏
+                        playerHealth = 3;
+                        gameOver = false;
+                        bullets.length = 0;
+                        enemyBullets.length = 0;
+                        enemies.length = 0;
+                        particles.length = 0;
+                        currentWave = 0;
+                        lastWaveTime = performance.now();
+                    }
+                } else {
+                    isMouseDown = false;
+                    clearInterval(shootTimer);
+                }
             }
         });
 
@@ -679,6 +838,44 @@
                 requestAnimationFrame(draw);
                 return;
             }
+            lastFrameTime = timestamp;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 游戏结束状态只绘制结束界面
+            if (gameOver) {
+            
+                // 绘制游戏结束界面
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '60px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('游戏结束', canvas.width/2, canvas.height/2 - 50);
+                
+                ctx.font = '30px Arial';
+                
+                // 是按钮
+                ctx.fillStyle = gameOverChoice === 'yes' ? '#ff5555' : '#ff0000';
+                ctx.fillRect(canvas.width/2 - 150, canvas.height/2 + 20, 120, 50);
+                ctx.fillStyle = 'white';
+                ctx.fillText('是', canvas.width/2 - 90, canvas.height/2 + 55);
+                
+                // 否按钮
+                ctx.fillStyle = gameOverChoice === 'no' ? '#55ff55' : '#00ff00';
+                ctx.fillRect(canvas.width/2 + 30, canvas.height/2 + 20, 120, 50);
+                ctx.fillStyle = 'white';
+                ctx.fillText('否', canvas.width/2 + 90, canvas.height/2 + 55);
+                
+                ctx.textAlign = 'left';
+                requestAnimationFrame(draw);
+                return;
+            }
+
+            // 正常游戏状态
+            
+            // 不再应用全局画布位移震动效果
             lastFrameTime = timestamp;
 
             // 计算加速度方向
@@ -754,6 +951,22 @@
             for (let i = enemies.length - 1; i >= 0; i--) {
                 enemies[i].update();
                 enemies[i].draw();
+                
+                // 敌人有1%的几率每帧发射子弹
+                if (Math.random() < 0.01 && enemies[i].state !== 'descending') {
+                    enemies[i].shoot();
+                }
+            }
+            
+            // 更新并绘制敌人子弹
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                enemyBullets[i].update();
+                enemyBullets[i].draw();
+                
+                // 移除屏幕外的子弹
+                if (enemyBullets[i].y > canvas.height + enemyBullets[i].radius) {
+                    enemyBullets.splice(i, 1);
+                }
             }
 
             // 更新并绘制粒子
@@ -783,6 +996,11 @@
             ctx.fillStyle = 'white';
             ctx.font = '20px Arial';
             ctx.fillText(`FPS: ${fps}`, 10, 30);
+            
+            // 绘制生命值显示
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial';
+            ctx.fillText(`生命: ${playerHealth}`, 10, 60);
 
             requestAnimationFrame(draw);
         }
