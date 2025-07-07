@@ -72,8 +72,8 @@ class EnemyBullet {
         this.x = x;
         this.y = y;
         this.angle = angle;
-        this.speed = 5;  // 子弹速度
-        this.radius = 25; // 子弹半径
+        this.speed = 4;  // 子弹速度
+        this.radius = 23; // 子弹半径
         this.type = type; // 'red'或'orange'
     }
 

@@ -5,7 +5,7 @@
  */
 
 import { canvas, ctx } from './canvasSetup.js';
-import { EnemyBullet } from './bullet.js';
+import { EnemyBullet } from './Bullet.js';
 
 // 敌人数组
 const enemies = [];
@@ -28,7 +28,7 @@ class Enemy {
         this.maxSpeed = Math.random() > 0.5 ? 1 : 7; // 初始随机速度
         this.acceleration = 0.1;
         this.isElite = this.text.length >= 6; // 长度≥6为精英敌人
-        this.color = this.isElite ? '#ff0000' : '#ff5555'; // 精英敌人红色
+        this.color = this.isElite ? '#ffffff' : '#ffffff'; // 精英敌人红色
         this.direction = Math.PI / 2; // 初始向下
         this.directionChangeTimer = 0;
         this.shakeTimer = 0;
@@ -37,6 +37,11 @@ class Enemy {
         this.state = 'descending'; // 初始下降状态
         this.targetY = canvas.height * (0.3 + Math.random() * 0.2); // 目标y位置(30%-50%)
         this.speedSwitchTimer = Math.random() * 3000 + 2000; // 2-5秒切换
+        
+        // 初始化精英敌人持续攻击系统
+        if (this.isElite) {
+            this.initShooting();
+        }
     }
 
     // 自动切换速度
@@ -45,6 +50,71 @@ class Enemy {
         if (this.speedSwitchTimer <= 0) {
             this.maxSpeed = this.maxSpeed === 1 ? 7 : 1;
             this.speedSwitchTimer = Math.random() * 3000 + 2000; // 重置2-5秒
+        }
+    }
+
+    // 新增发射计时器，控制精英敌人持续发射
+    initShooting() {
+        this.shootTimer = 0;
+        this.shootInterval = 700; // 200ms发射一次
+    }
+
+    updateShooting(delta, position) {
+        if (!this.isElite) return;
+
+        this.shootTimer += delta;
+        if (this.shootTimer >= this.shootInterval) {
+            this.shootTimer = 0; // 重置计时器，确保精确200ms间隔
+            // 持续发射，固定攻击方式1
+            this.shootDual(position, 1);
+        }
+    }
+
+    // 新增双端同时发射子弹方法，支持指定攻击方式
+    shootDual(position, attackType = 2) {
+        // 计算文本宽度和单个字符宽度
+        ctx.save();
+        ctx.font = `${this.size}px Arial`;
+        const fullWidth = ctx.measureText(this.text).width;
+        const charWidth = ctx.measureText("敌").width;
+        ctx.restore();
+
+        // 计算第一个字和最后一个字的发射位置
+        const leftX = this.x - fullWidth/2 + charWidth/2;
+        const rightX = this.x + fullWidth/2 - charWidth/2;
+
+        if (attackType === 1) {
+            // 攻击方式1：360度分成6个方向均匀发射子弹，红橙交替
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI * 2) / 6;
+                const type = i % 2 === 0 ? 'red' : 'orange';
+                // 第一个字位置发射
+                enemyBullets.push(new EnemyBullet(leftX, this.y, angle, type));
+                // 最后一个字位置发射
+                enemyBullets.push(new EnemyBullet(rightX, this.y, angle, type));
+            }
+        } else {
+            // 攻击方式2：螺旋发射模式
+            const spiralFactor = 0.2; // 螺旋紧密程度
+            const timeOffset = performance.now() * 0.001; // 随时间变化的偏移
+            
+            for (let i = 0; i < 6; i++) {
+                // 计算基础角度和螺旋偏移
+                const baseAngle = (i * Math.PI * 2) / 6;
+                const spiralOffset = (i + timeOffset) * spiralFactor;
+                const angle = baseAngle + spiralOffset;
+                
+                const type = i % 2 === 0 ? 'red' : 'orange';
+                // 第一个字位置发射
+                const bullet1 = new EnemyBullet(leftX, this.y, angle, type);
+                bullet1.speed = 3 + Math.sin(timeOffset) * 0.5; // 添加速度波动
+                enemyBullets.push(bullet1);
+                
+                // 最后一个字位置发射
+                const bullet2 = new EnemyBullet(rightX, this.y, angle, type);
+                bullet2.speed = 3 + Math.cos(timeOffset) * 0.5; // 添加速度波动
+                enemyBullets.push(bullet2);
+            }
         }
     }
 
@@ -114,6 +184,11 @@ class Enemy {
             this.shakeTimer--;
             this.shakeIntensity = this.shakeTimer / 10;
         }
+
+        // 更新精英敌人持续攻击
+        if (this.isElite && this.state !== 'descending') {
+            this.updateShooting(16, position); // 假设60fps，delta≈16ms
+        }
     }
 
     draw() {
@@ -172,23 +247,38 @@ class Enemy {
 
     // 发射子弹
     shoot(position) {
-        // 精英敌人有50%几率发射红色子弹，50%几率发射橙色子弹
-        // 普通敌人只发射橙色子弹
-        const type = this.isElite ?
-            (Math.random() > 0.5 ? 'red' : 'orange') : 'orange';
+        if (!this.isElite) {
+            // 普通敌人保持原有单发橙色子弹攻击方式
+            const playerX = position.x * 0.7;
+            const playerY = (position.y + 62) * 0.7;
+            const dx = playerX - this.x;
+            const dy = playerY - this.y;
+            const angle = Math.atan2(dy, dx);
+            enemyBullets.push(new EnemyBullet(this.x, this.y, angle, 'orange'));
+            return 'orange';
+        }
 
-        // 计算朝向玩家的角度
-        const playerX = position.x * 0.7;
-        const playerY = (position.y + 62) * 0.7;
-        const dx = playerX - this.x;
-        const dy = playerY - this.y;
-        const angle = Math.atan2(dy, dx);
+        // 精英敌人新增两种攻击方式，随机选择一种
+        const attackType = Math.random() < 0.5 ? 1 : 2;
 
-        // 创建新子弹
-        enemyBullets.push(new EnemyBullet(this.x, this.y, angle, type));
+        if (attackType === 1) {
+            // 攻击方式1：360度分成6个方向均匀发射子弹，红橙交替
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI * 2) / 6;
+                const type = i % 2 === 0 ? 'red' : 'orange';
+                enemyBullets.push(new EnemyBullet(this.x, this.y, angle, type));
+            }
+        } else {
+            // 攻击方式2：基于攻击方式1，增加旋转角度偏移
+            const rotationOffset = Math.PI / 12; // 15度偏移
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI * 2) / 6 + rotationOffset;
+                const type = i % 2 === 0 ? 'red' : 'orange';
+                enemyBullets.push(new EnemyBullet(this.x, this.y, angle, type));
+            }
+        }
 
-        // 返回子弹类型用于音效等
-        return type;
+        return 'elite';
     }
 }
 
@@ -221,7 +311,7 @@ function spawnWave() {
             // 如果已经有2个精英敌人，重新生成普通敌人
             enemy.text = "敌".repeat(Math.floor(Math.random() * 3) + 3); // 3-5个"敌"字
             enemy.isElite = false;
-            enemy.color = '#ff5555';
+            enemy.color = '#ffffff';
             enemy.health = 1;
         } else if (enemy.isElite) {
             eliteCount++;
