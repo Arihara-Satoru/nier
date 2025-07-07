@@ -39,7 +39,21 @@
 </head>
 <body>
     <canvas id="game"></canvas>
-
+    <audio id="bgm" src="./music.m4a" loop></audio>
     <script type="module" src="./js/game.js"></script>
+    <script>
+    // 只监听第一次点击
+        function playAudioOnce() {
+            const audio = document.getElementById('bgm');
+            audio.play().catch(err => {
+                console.warn('自动播放失败：', err);
+            });
+
+            // 只触发一次就解绑事件
+            document.removeEventListener('click', playAudioOnce);
+        }
+
+        document.addEventListener('click', playAudioOnce);
+    </script>
 </body>
 </html>

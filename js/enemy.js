@@ -65,13 +65,14 @@ class Enemy {
         this.shootTimer += delta;
         if (this.shootTimer >= this.shootInterval) {
             this.shootTimer = 0; // 重置计时器，确保精确200ms间隔
-            // 持续发射，固定攻击方式1
-            this.shootDual(position, 1);
+            // 随机选择攻击方式1或2
+            const attackType = Math.random() < 0.5 ? 1 : 2;
+            this.shootDual(position, attackType);
         }
     }
 
     // 新增双端同时发射子弹方法，支持指定攻击方式
-    shootDual(position, attackType = 2) {
+    shootDual(position, attackType = 1) {
         // 计算文本宽度和单个字符宽度
         ctx.save();
         ctx.font = `${this.size}px Arial`;

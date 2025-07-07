@@ -263,6 +263,19 @@ function checkCollisions() {
             enemyBullets.splice(i, 1);
             createSmallExplosion(enemyBullet.x, enemyBullet.y, particles, 20);
 
+            // 清除玩家周围300像素内的所有子弹
+            const CLEAR_RADIUS = 300;
+            for (let j = enemyBullets.length - 1; j >= 0; j--) {
+                const bullet = enemyBullets[j];
+                const dx = playerX - bullet.x;
+                const dy = playerY - bullet.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < CLEAR_RADIUS) {
+                    createSmallExplosion(bullet.x, bullet.y, particles, 10);
+                    enemyBullets.splice(j, 1);
+                }
+            }
+
             // 创建玩家被击中效果
             createSmallExplosion(enemyBullet.x, enemyBullet.y, particles, 30);
 
