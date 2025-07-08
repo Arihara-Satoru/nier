@@ -264,7 +264,10 @@ function checkCollisions() {
     // 检测玩家与敌人子弹碰撞
     const playerX = position.x * 0.7;
     const playerY = (position.y + 62) * 0.7;
-    const playerRadius = 20; // 玩家碰撞半径
+    // 根据受伤次数动态调整碰撞半径
+    let playerRadius = 15;
+    if (hitCount >= 1) playerRadius = 10;
+    if (hitCount >= 2) playerRadius = 5;
 
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
         const enemyBullet = enemyBullets[i];
