@@ -5,7 +5,7 @@
  */
 
 import { canvas, ctx, BASE_WIDTH, BASE_HEIGHT } from './canvasSetup.js';
-import { position, velocity, maxSpeed, acceleration, friction, keysPressed, setCreatePlayerBullet, trailParticles } from './playerControl.js';
+import { position, velocity, maxSpeed, acceleration, friction, keysPressed, setCreatePlayerBullet, trailParticles, update } from './playerControl.js';
 import { Enemy, enemies, enemyBullets, spawnWave, isWaveCleared } from './Enemy.js';
 import { Bullet } from './Bullet.js';
 import { Particle, createTextExplosion, createSmallExplosion } from './Particle.js';
@@ -546,6 +546,9 @@ function draw(timestamp) {
             trailParticles.splice(i, 1); // 移除生命周期结束的粒子
         }
     }
+
+    // 更新玩家控制逻辑(包括子弹发射)
+    update();
 
     // 限制玩家在屏幕范围内移动(使用基准分辨率)
     const playerWidth = 50; // 玩家角色宽度估计值

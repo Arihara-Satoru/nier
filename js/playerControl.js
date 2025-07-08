@@ -26,9 +26,10 @@ const trailParticles = [];
 
 // 鼠标按下状态
 let isMouseDown = false;
-// 发射定时器
-let shootTimer = null;
-const SHOOT_INTERVAL = 80; // 发射间隔(ms)
+// 帧计数器
+let frameCount = 0;
+// 需要发射子弹的标记
+let shouldShoot = false;
 
 /**
  * 监听键盘按下事件，更新keysPressed状态
@@ -59,8 +60,9 @@ canvas.addEventListener('mousemove', (event) => {
 canvas.addEventListener('mousedown', (e) => {
     if (e.button === 0) { // 左键
         isMouseDown = true;
+        frameCount = 0; // 重置帧计数器
+        shouldShoot = true; // 标记需要发射子弹
         shootBullet(); // 立即发射第一颗子弹
-        shootTimer = setInterval(shootBullet, SHOOT_INTERVAL);
     }
 });
 
@@ -70,7 +72,6 @@ canvas.addEventListener('mousedown', (e) => {
 canvas.addEventListener('mouseup', (e) => {
     if (e.button === 0) { // 左键
         isMouseDown = false;
-        clearInterval(shootTimer);
     }
 });
 
@@ -78,8 +79,9 @@ canvas.addEventListener('mouseup', (e) => {
  * 发射子弹函数，计算发射角度并调用外部子弹创建函数
  */
 function shootBullet() {
-    if (!isMouseDown) return;
-
+    if (!shouldShoot) return;
+    shouldShoot = false; // 重置发射标记
+    
     const scaleFactor = 0.7; // 与drawShape一致
     const emitX = position.x * scaleFactor;
     const emitY = (position.y + 62) * scaleFactor;
@@ -105,6 +107,19 @@ function setCreatePlayerBullet(fn) {
     createPlayerBullet = fn;
 }
 
+/**
+ * 更新函数，应在游戏主循环中调用
+ */
+function update() {
+    if (isMouseDown) {
+        frameCount++;
+        if (frameCount % 9 === 0) {
+            shouldShoot = true;
+            shootBullet();
+        }
+    }
+}
+
 export {
     position,
     velocity,
@@ -115,5 +130,6 @@ export {
     mousePosition,
     shootBullet,
     setCreatePlayerBullet,
-    trailParticles
+    trailParticles,
+    update
 };
