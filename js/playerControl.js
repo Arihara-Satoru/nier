@@ -21,6 +21,9 @@ const keysPressed = {};
 // 当前速度
 let velocity = { x: 0, y: 0 };
 
+// 拖尾粒子数组
+const trailParticles = [];
+
 // 鼠标按下状态
 let isMouseDown = false;
 // 发射定时器
@@ -111,5 +114,6 @@ export {
     keysPressed,
     mousePosition,
     shootBullet,
-    setCreatePlayerBullet
+    setCreatePlayerBullet,
+    trailParticles
 };

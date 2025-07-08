@@ -5,7 +5,7 @@
  */
 
 import { canvas, ctx, BASE_WIDTH, BASE_HEIGHT } from './canvasSetup.js';
-import { position, velocity, maxSpeed, acceleration, friction, keysPressed, setCreatePlayerBullet } from './playerControl.js';
+import { position, velocity, maxSpeed, acceleration, friction, keysPressed, setCreatePlayerBullet, trailParticles } from './playerControl.js';
 import { Enemy, enemies, enemyBullets, spawnWave, isWaveCleared } from './Enemy.js';
 import { Bullet } from './Bullet.js';
 import { Particle, createTextExplosion, createSmallExplosion } from './Particle.js';
@@ -441,6 +441,60 @@ function draw(timestamp) {
     position.x += velocity.x;
     position.y += velocity.y;
 
+    // 创建拖尾粒子(仅在移动时)
+    const scaleFactor = 0.7; // 与drawShape一致
+    const trailX = position.x * scaleFactor;
+    const trailY = (position.y + 100) * scaleFactor;
+    
+    // 检查是否有移动(速度大于0.5)
+    const isMoving = Math.abs(velocity.x) > 0.5 || Math.abs(velocity.y) > 0.5;
+    
+    // 每隔3帧添加一个新拖尾粒子
+    if (isMoving && framesThisSecond % 10 === 0) {
+        // 随机位置偏移(0-100px)
+        const offsetX = (Math.random() * 50 - 70);
+        const offsetY = (Math.random() * 50 - 70);
+        
+        // 计算反方向速度(基于当前速度)
+        const speedX = -velocity.x * 0.2 + (Math.random() * 2 - 1);
+        const speedY = -velocity.y * 0.2 + (Math.random() * 2 - 1);
+        
+        trailParticles.push({
+            x: trailX + offsetX,
+            y: trailY + offsetY,
+            size: 18, // 粒子大小
+            color: '#dfddcd',
+            life: 1.0, // 1秒生命周期
+            alpha: 1.0,
+            speedX: speedX,
+            speedY: speedY,
+            rotation: 0,
+            rotationSpeed: (Math.random() * 0.2 - 0.1) // 随机旋转速度
+        });
+    }
+    
+    // 更新拖尾粒子位置和旋转
+    for (const particle of trailParticles) {
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+        particle.rotation += particle.rotationSpeed;
+        
+        // 应用摩擦力
+        particle.speedX *= 0.95;
+        particle.speedY *= 0.95;
+    }
+    
+    // 更新拖尾粒子生命周期
+    for (let i = trailParticles.length - 1; i >= 0; i--) {
+        const particle = trailParticles[i];
+        particle.life -= 1/60; // 每帧减少1/60秒
+        particle.alpha = particle.life / 2.0; // 根据生命周期计算透明度
+        
+        if (particle.life <= 0) {
+            trailParticles.splice(i, 1); // 移除生命周期结束的粒子
+        }
+    }
+
     // 限制玩家在屏幕范围内移动(使用基准分辨率)
     const playerWidth = 50; // 玩家角色宽度估计值
     const playerHeight = 100; // 玩家角色高度估计值
@@ -456,6 +510,23 @@ function draw(timestamp) {
 
     // 根据当前位置绘制四面体的一个面
     drawShape(position.x, position.y, 0.7);
+
+    // 绘制拖尾粒子(带旋转效果)
+    ctx.save();
+    for (const particle of trailParticles) {
+        ctx.save();
+        ctx.translate(particle.x, particle.y);
+        ctx.rotate(particle.rotation);
+        ctx.fillStyle = `rgba(223, 221, 205, ${particle.alpha})`;
+        ctx.fillRect(
+            -particle.size/2,
+            -particle.size/2,
+            particle.size,
+            particle.size
+        );
+        ctx.restore();
+    }
+    ctx.restore();
 
     // 更新并绘制玩家子弹
     for (let i = bullets.length - 1; i >= 0; i--) {
