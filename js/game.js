@@ -51,10 +51,13 @@ let gameOverChoice = null;
 const clonePlayers = [];
 let cloneAnimationPhase = 0; // 0:未开始, 1:飞入, 2:旋转
 let cloneAnimationTimer = 0;
+let cloneSpawnTimer = 0;
+let clonesSpawned = 0;
 const CLONE_ANIMATION_DURATION = 120; // 飞行动画帧数
 const CLONE_COUNT = 6; // 克隆数量
 const CLONE_ROTATION_SPEED = 0.02; // 旋转速度
 const CLONE_ROTATION_RADIUS = 100; // 旋转半径
+const CLONE_SPAWN_INTERVAL = 300; // 克隆体生成间隔(帧数)
 
 // 鼠标按下状态
 let isMouseDown = false;
@@ -574,8 +577,37 @@ function draw(timestamp) {
         const playerCenterX = position.x * 0.7;
         const playerCenterY = (position.y + 62) * 0.7;
         
+        // 飞行动画阶段
+        if (cloneAnimationPhase === 1) {
+            // 生成新的克隆体
+            if (clonesSpawned < CLONE_COUNT) {
+                cloneSpawnTimer++;
+                if (cloneSpawnTimer >= CLONE_SPAWN_INTERVAL) {
+                    createNextClone();
+                    cloneSpawnTimer = 0;
+                }
+            }
+            
+            // 更新已生成的克隆体位置
+            for (let i = 0; i < clonePlayers.length; i++) {
+                const clone = clonePlayers[i];
+                // 计算最终旋转位置
+                const targetX = playerCenterX + Math.cos(clone.angle) * CLONE_ROTATION_RADIUS;
+                const targetY = playerCenterY + Math.sin(clone.angle) * CLONE_ROTATION_RADIUS;
+                
+                // 平滑飞向目标位置
+                clone.x = clone.x + (targetX - clone.x) * 0.1;
+                clone.y = clone.y + (targetY - clone.y) * 0.1;
+            }
+            
+            // 所有克隆体生成完成且飞行动画结束，进入旋转阶段
+            if (clonesSpawned >= CLONE_COUNT && cloneAnimationTimer >= CLONE_ANIMATION_DURATION) {
+                cloneAnimationPhase = 2;
+                cloneAnimationTimer = 0;
+            }
+        }
         // 旋转动画阶段
-        if (cloneAnimationPhase === 2) {
+        else if (cloneAnimationPhase === 2) {
             for (const clone of clonePlayers) {
                 // 更新目标位置为玩家当前位置
                 clone.targetX = playerCenterX;
@@ -760,7 +792,7 @@ setCreatePlayerBullet((x, y, angle) => {
     bullets.push(new Bullet(x, y, angle));
     
     // 克隆玩家也一起攻击(平行攻击)
-    if (cloneAnimationPhase === 2) {
+    if (cloneAnimationPhase > 0) {  // 只要动画开始(phase 1或2)就攻击
         for (const clone of clonePlayers) {
             // 使用与主玩家相同的攻击角度
             bullets.push(new Bullet(clone.x, clone.y, angle));
@@ -771,29 +803,42 @@ setCreatePlayerBullet((x, y, angle) => {
 /**
  * 创建克隆玩家模型
  */
+// 创建下一个克隆体
+function createNextClone() {
+    if (clonesSpawned >= CLONE_COUNT) return;
+    
+    const angle = (clonesSpawned / CLONE_COUNT) * Math.PI * 2;
+    // 计算最终旋转位置
+    const targetX = position.x * 0.7 + Math.cos(angle) * CLONE_ROTATION_RADIUS;
+    const targetY = (position.y + 62) * 0.7 + Math.sin(angle) * CLONE_ROTATION_RADIUS;
+    
+    // 设置初始位置为屏幕边缘
+    const edgeX = angle < Math.PI/4 || angle > 7*Math.PI/4 ? 0 : canvas.width;
+    const edgeY = angle < 3*Math.PI/4 ? 0 : canvas.height;
+    
+    clonePlayers.push({
+        x: edgeX,
+        y: edgeY,
+        targetX: targetX,
+        targetY: targetY,
+        angle: angle,
+        rotationAngle: 0
+    });
+    
+    clonesSpawned++;
+}
+
 function createClonePlayers() {
     clonePlayers.length = 0; // 清空现有克隆
     
-    const playerCenterX = position.x * 0.7;
-    const playerCenterY = (position.y + 62) * 0.7;
-    
-    // 创建6个克隆玩家，直接出现在玩家周围
-    for (let i = 0; i < CLONE_COUNT; i++) {
-        const angle = (i / CLONE_COUNT) * Math.PI * 2;
-        
-        clonePlayers.push({
-            x: playerCenterX + Math.cos(angle) * CLONE_ROTATION_RADIUS,
-            y: playerCenterY + Math.sin(angle) * CLONE_ROTATION_RADIUS,
-            targetX: playerCenterX,
-            targetY: playerCenterY,
-            angle: angle,
-            rotationAngle: 0
-        });
-    }
-    
-    // 立即开始旋转动画
-    cloneAnimationPhase = 2;
+    // 重置克隆体生成状态
+    clonesSpawned = 0;
+    cloneSpawnTimer = 0;
+    cloneAnimationPhase = 1;
     cloneAnimationTimer = 0;
+    
+    // 创建第一个克隆体
+    createNextClone();
     
     // 移除点击事件监听，避免重复绑定
     canvas.onclick = null;
