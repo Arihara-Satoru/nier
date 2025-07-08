@@ -24,6 +24,13 @@ let screenShake = {
 
 // 玩家生命值
 let playerHealth = 3;
+// 玩家受伤计数
+let hitCount = 0;
+// 光波效果
+let waveRadius = 0;
+let waveAlpha = 0;
+let waveX = 0;
+let waveY = 0;
 
 // 敌人批次控制
 let currentWave = 0;
@@ -116,44 +123,52 @@ function drawShape(x, y, scaleFactor) {
     ctx.stroke();
 
     // 侧面1: 顶点 (x-21, y+55)->局部: (-21*sf, (55-62)*sf = -7*sf) 等
-    ctx.beginPath();
-    ctx.moveTo(-21 * sf, -7 * sf);
-    ctx.lineTo(-2 * sf, 8 * sf);   // (x-2, y+70) 局部 ( -2*sf, (70-62)*sf=8*sf )
-    ctx.lineTo(-2 * sf, 28 * sf);  // (x-2, y+90) 局部 ( -2*sf, (90-62)*sf=28*sf )
-    ctx.lineTo(-25 * sf, 3 * sf);  // (x-25, y+65) 局部 (-25*sf, (65-62)*sf=3*sf)
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    if (hitCount < 1) {
+        ctx.beginPath();
+        ctx.moveTo(-21 * sf, -7 * sf);
+        ctx.lineTo(-2 * sf, 8 * sf);   // (x-2, y+70) 局部 ( -2*sf, (70-62)*sf=8*sf )
+        ctx.lineTo(-2 * sf, 28 * sf);  // (x-2, y+90) 局部 ( -2*sf, (90-62)*sf=28*sf )
+        ctx.lineTo(-25 * sf, 3 * sf);  // (x-25, y+65) 局部 (-25*sf, (65-62)*sf=3*sf)
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
 
     // 侧面2
-    ctx.beginPath();
-    ctx.moveTo(21 * sf, -7 * sf);
-    ctx.lineTo(2 * sf, 8 * sf);
-    ctx.lineTo(2 * sf, 28 * sf);
-    ctx.lineTo(25 * sf, 3 * sf);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    if (hitCount < 2) {
+        ctx.beginPath();
+        ctx.moveTo(21 * sf, -7 * sf);
+        ctx.lineTo(2 * sf, 8 * sf);
+        ctx.lineTo(2 * sf, 28 * sf);
+        ctx.lineTo(25 * sf, 3 * sf);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
 
     // 底部面1: (x+20,y+85)->局部: (20*sf, (85-62)*sf=23*sf)，(x+30,y+85)->(30*sf,23*sf)，(x+30,y+95)->(30*sf,33*sf),(x+20,y+95)->(20*sf,33*sf)
-    ctx.beginPath();
-    ctx.moveTo(20 * sf, 23 * sf);
-    ctx.lineTo(30 * sf, 23 * sf);
-    ctx.lineTo(30 * sf, 33 * sf);
-    ctx.lineTo(20 * sf, 33 * sf);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    if (hitCount < 2) {
+        ctx.beginPath();
+        ctx.moveTo(20 * sf, 23 * sf);
+        ctx.lineTo(30 * sf, 23 * sf);
+        ctx.lineTo(30 * sf, 33 * sf);
+        ctx.lineTo(20 * sf, 33 * sf);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
 
     // 底部面2
-    ctx.beginPath();
-    ctx.moveTo(-20 * sf, 23 * sf);
-    ctx.lineTo(-30 * sf, 23 * sf);
-    ctx.lineTo(-30 * sf, 33 * sf);
-    ctx.lineTo(-20 * sf, 33 * sf);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    if (hitCount < 1) {
+        ctx.beginPath();
+        ctx.moveTo(-20 * sf, 23 * sf);
+        ctx.lineTo(-30 * sf, 23 * sf);
+        ctx.lineTo(-30 * sf, 33 * sf);
+        ctx.lineTo(-20 * sf, 33 * sf);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
 
     // 圆：局部 (0,0)，半径 11*sf
     ctx.strokeStyle = '#dfddcd';
@@ -164,14 +179,14 @@ function drawShape(x, y, scaleFactor) {
     ctx.stroke();
 
     // 绘制旋转中心标记（可选）
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(-5, 0);
-    ctx.lineTo(5, 0);
-    ctx.moveTo(0, -5);
-    ctx.lineTo(0, 5);
-    ctx.stroke();
+    // ctx.strokeStyle = 'red';
+    // ctx.lineWidth = 1;
+    // ctx.beginPath();
+    // ctx.moveTo(-5, 0);
+    // ctx.lineTo(5, 0);
+    // ctx.moveTo(0, -5);
+    // ctx.lineTo(0, 5);
+    // ctx.stroke();
 
     // 清除阴影设置
     ctx.shadowColor = 'transparent';
@@ -260,8 +275,15 @@ function checkCollisions() {
         if (distance < playerRadius + enemyBullet.radius) {
             // 玩家被击中
             playerHealth--;
+            hitCount++;
             enemyBullets.splice(i, 1);
             createSmallExplosion(enemyBullet.x, enemyBullet.y, particles, 20);
+            
+            // 初始化光波效果
+            waveRadius = 0;
+            waveAlpha = 1.0;
+            waveX = playerX;
+            waveY = playerY;
 
             // 清除玩家周围300像素内的所有子弹
             const CLEAR_RADIUS = 300;
@@ -514,6 +536,21 @@ function draw(timestamp) {
 
     // 根据当前位置绘制四面体的一个面
     drawShape(position.x, position.y, 0.7);
+
+    // 绘制光波效果
+    if (waveAlpha > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(waveX, waveY, waveRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${waveAlpha})`;
+        ctx.lineWidth = 30;
+        ctx.stroke();
+        ctx.restore();
+
+        // 更新光波效果
+        waveRadius += 5;
+        waveAlpha -= 0.02;
+    }
 
     // 绘制拖尾立方体粒子
     ctx.save();
