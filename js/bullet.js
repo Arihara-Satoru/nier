@@ -14,7 +14,7 @@ class Bullet {
         this.x = x;
         this.y = y;
         this.angle = angle;  // 子弹发射角度
-        this.speed = 15;     // 子弹速度
+        this.speed = 18;     // 子弹速度
         this.radius = 9;
     }
 

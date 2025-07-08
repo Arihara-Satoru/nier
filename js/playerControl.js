@@ -25,7 +25,7 @@ let velocity = { x: 0, y: 0 };
 let isMouseDown = false;
 // 发射定时器
 let shootTimer = null;
-const SHOOT_INTERVAL = 120; // 发射间隔(ms)
+const SHOOT_INTERVAL = 80; // 发射间隔(ms)
 
 /**
  * 监听键盘按下事件，更新keysPressed状态

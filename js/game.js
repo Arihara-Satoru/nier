@@ -457,7 +457,7 @@ function draw(timestamp) {
     // 根据当前位置绘制四面体的一个面
     drawShape(position.x, position.y, 0.7);
 
-    // 更新并绘制子弹
+    // 更新并绘制玩家子弹
     for (let i = bullets.length - 1; i >= 0; i--) {
         const bullet = bullets[i];
         bullet.update();
@@ -465,23 +465,6 @@ function draw(timestamp) {
             bullets.splice(i, 1); // 移除画布外的子弹
         } else {
             bullet.draw();
-        }
-    }
-
-    // 检查是否需要生成新批次敌人
-    const now = performance.now();
-    if (isWaveCleared() && now - lastWaveTime > 3000) {
-        spawnWave();
-    }
-
-    // 更新并绘制敌人
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        enemies[i].update(position);
-        enemies[i].draw();
-
-        // 敌人有1%的几率每帧发射子弹
-        if (Math.random() < 0.01 && enemies[i].state !== 'descending') {
-            enemies[i].shoot(position);
         }
     }
 
@@ -496,7 +479,24 @@ function draw(timestamp) {
         }
     }
 
-    // 更新并绘制粒子
+    // 检查是否需要生成新批次敌人
+    const now = performance.now();
+    if (isWaveCleared() && now - lastWaveTime > 3000) {
+        spawnWave();
+    }
+
+    // 更新并绘制敌人(最后绘制确保显示在子弹上方)
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        enemies[i].update(position);
+        enemies[i].draw();
+
+        // 敌人有1%的几率每帧发射子弹
+        if (Math.random() < 0.01 && enemies[i].state !== 'descending') {
+            enemies[i].shoot(position);
+        }
+    }
+
+    // 更新并绘制粒子(最后绘制确保显示在最上层)
     for (let i = particles.length - 1; i >= 0; i--) {
         particles[i].update();
         particles[i].draw();
