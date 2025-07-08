@@ -459,17 +459,21 @@ function draw(timestamp) {
         const speedX = -velocity.x * 0.2 + (Math.random() * 2 - 1);
         const speedY = -velocity.y * 0.2 + (Math.random() * 2 - 1);
         
+        // 随机选择粒子样式(50%填充,50%线框)
+        const style = Math.random() > 0.5 ? 'filled' : 'wireframe';
+        
         trailParticles.push({
             x: trailX + offsetX,
             y: trailY + offsetY,
-            size: 18, // 粒子大小
+            size: 12, // 粒子大小
             color: '#dfddcd',
-            life: 1.0, // 1秒生命周期
+            life: 1.5, // 1.5秒生命周期
             alpha: 1.0,
             speedX: speedX,
             speedY: speedY,
             rotation: 0,
-            rotationSpeed: (Math.random() * 0.2 - 0.1) // 随机旋转速度
+            rotationSpeed: (Math.random() * 0.2 - 0.1), // 随机旋转速度
+            style: style // 粒子样式
         });
     }
     
@@ -511,19 +515,73 @@ function draw(timestamp) {
     // 根据当前位置绘制四面体的一个面
     drawShape(position.x, position.y, 0.7);
 
-    // 绘制拖尾粒子(带旋转效果)
+    // 绘制拖尾立方体粒子
     ctx.save();
     for (const particle of trailParticles) {
         ctx.save();
         ctx.translate(particle.x, particle.y);
         ctx.rotate(particle.rotation);
-        ctx.fillStyle = `rgba(223, 221, 205, ${particle.alpha})`;
-        ctx.fillRect(
-            -particle.size/2,
-            -particle.size/2,
-            particle.size,
-            particle.size
-        );
+        
+        // 随机选择绘制样式
+        if (particle.style === 'filled') {
+            // 填充立方体
+            ctx.fillStyle = `rgba(223, 221, 205, ${particle.alpha})`;
+            ctx.fillRect(
+                -particle.size/2,
+                -particle.size/2,
+                particle.size,
+                particle.size
+            );
+            
+            // 添加3D效果
+            ctx.strokeStyle = `rgba(180, 178, 165, ${particle.alpha})`;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(
+                -particle.size/2,
+                -particle.size/2,
+                particle.size,
+                particle.size
+            );
+            
+            // 添加阴影面
+            ctx.fillStyle = `rgba(180, 178, 165, ${particle.alpha * 0.7})`;
+            ctx.beginPath();
+            ctx.moveTo(particle.size/2, -particle.size/2);
+            ctx.lineTo(particle.size/2 + 3, -particle.size/2 + 3);
+            ctx.lineTo(particle.size/2 + 3, particle.size/2 + 3);
+            ctx.lineTo(particle.size/2, particle.size/2);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.moveTo(-particle.size/2, particle.size/2);
+            ctx.lineTo(-particle.size/2 + 3, particle.size/2 + 3);
+            ctx.lineTo(particle.size/2 + 3, particle.size/2 + 3);
+            ctx.lineTo(particle.size/2, particle.size/2);
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            // 线框立方体
+            ctx.strokeStyle = `rgba(223, 221, 205, ${particle.alpha})`;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(
+                -particle.size/2,
+                -particle.size/2,
+                particle.size,
+                particle.size
+            );
+            
+            // 添加3D线框
+            ctx.beginPath();
+            ctx.moveTo(particle.size/2, -particle.size/2);
+            ctx.lineTo(particle.size/2 + 3, -particle.size/2 + 3);
+            ctx.lineTo(particle.size/2 + 3, particle.size/2 + 3);
+            ctx.lineTo(particle.size/2, particle.size/2);
+            ctx.moveTo(-particle.size/2, particle.size/2);
+            ctx.lineTo(-particle.size/2 + 3, particle.size/2 + 3);
+            ctx.lineTo(particle.size/2 + 3, particle.size/2 + 3);
+            ctx.stroke();
+        }
         ctx.restore();
     }
     ctx.restore();
