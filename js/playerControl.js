@@ -113,7 +113,7 @@ function setCreatePlayerBullet(fn) {
 function update() {
     if (isMouseDown) {
         frameCount++;
-        if (frameCount % 9 === 0) {
+        if (frameCount % 6 === 0) {
             shouldShoot = true;
             shootBullet();
         }
