@@ -47,6 +47,15 @@ let gameOver = false;
 // 游戏结束界面状态
 let gameOverChoice = null;
 
+// 克隆玩家模型
+const clonePlayers = [];
+let cloneAnimationPhase = 0; // 0:未开始, 1:飞入, 2:旋转
+let cloneAnimationTimer = 0;
+const CLONE_ANIMATION_DURATION = 120; // 飞行动画帧数
+const CLONE_COUNT = 6; // 克隆数量
+const CLONE_ROTATION_SPEED = 0.02; // 旋转速度
+const CLONE_ROTATION_RADIUS = 100; // 旋转半径
+
 // 鼠标按下状态
 let isMouseDown = false;
 // 发射定时器
@@ -399,15 +408,8 @@ function draw(timestamp) {
             const mouseX = (e.clientX - rect.left) / rect.width * canvas.width;
             const mouseY = (e.clientY - rect.top) / rect.height * canvas.height;
 
-            // 是按钮区域
+            // 是按钮区域 - 现在执行重置游戏功能
             if (mouseX > canvas.width / 2 - 150 && mouseX < canvas.width / 2 - 30 &&
-                mouseY > canvas.height / 2 + 20 && mouseY < canvas.height / 2 + 70) {
-                // 停止游戏，保持游戏结束状态
-                // 可以根据需求添加额外逻辑
-            }
-
-            // 否按钮区域
-            if (mouseX > canvas.width / 2 + 30 && mouseX < canvas.width / 2 + 150 &&
                 mouseY > canvas.height / 2 + 20 && mouseY < canvas.height / 2 + 70) {
                 // 重置游戏状态
                 playerHealth = 3;
@@ -417,10 +419,31 @@ function draw(timestamp) {
                 enemies.length = 0;
                 particles.length = 0;
                 currentWave = 0;
+                hitCount = 0;
+                isSpawningWave = false;
+                spawnWave();
                 lastWaveTime = performance.now();
 
                 // 移除点击事件监听，避免重复绑定
                 canvas.onclick = null;
+            }
+
+            // 否按钮区域 - 添加召唤克隆玩家功能
+            if (mouseX > canvas.width / 2 + 30 && mouseX < canvas.width / 2 + 150 &&
+                mouseY > canvas.height / 2 + 20 && mouseY < canvas.height / 2 + 70) {
+                // 创建6个克隆玩家
+                createClonePlayers();
+                // 重置游戏状态
+                playerHealth = 3;
+                gameOver = false;
+                bullets.length = 0;
+                enemyBullets.length = 0;
+                enemies.length = 0;
+                particles.length = 0;
+                currentWave = 0;
+                hitCount = 0;
+                isSpawningWave = false;
+                spawnWave();
             }
         };
 
@@ -539,6 +562,53 @@ function draw(timestamp) {
 
     // 根据当前位置绘制四面体的一个面
     drawShape(position.x, position.y, 0.7);
+
+    // 处理克隆玩家动画
+    if (cloneAnimationPhase > 0) {
+        cloneAnimationTimer++;
+        
+        // 更新所有克隆玩家的目标位置为玩家当前位置
+        const playerCenterX = position.x * 0.7;
+        const playerCenterY = (position.y + 62) * 0.7;
+        
+        // 飞行动画阶段
+        if (cloneAnimationPhase === 1) {
+            const progress = Math.min(1, cloneAnimationTimer / CLONE_ANIMATION_DURATION);
+            
+            for (const clone of clonePlayers) {
+                // 更新目标位置为玩家当前位置
+                clone.targetX = playerCenterX;
+                clone.targetY = playerCenterY;
+                
+                clone.x = clone.x + (clone.targetX - clone.x) * 0.1;
+                clone.y = clone.y + (clone.targetY - clone.y) * 0.1;
+            }
+            
+            // 飞行动画结束，进入旋转阶段
+            if (cloneAnimationTimer >= CLONE_ANIMATION_DURATION) {
+                cloneAnimationPhase = 2;
+                cloneAnimationTimer = 0;
+            }
+        }
+        // 旋转动画阶段
+        else if (cloneAnimationPhase === 2) {
+            for (const clone of clonePlayers) {
+                // 更新目标位置为玩家当前位置
+                clone.targetX = playerCenterX;
+                clone.targetY = playerCenterY;
+                
+                clone.rotationAngle += CLONE_ROTATION_SPEED;
+                clone.x = clone.targetX + Math.cos(clone.rotationAngle + clone.angle) * CLONE_ROTATION_RADIUS;
+                clone.y = clone.targetY + Math.sin(clone.rotationAngle + clone.angle) * CLONE_ROTATION_RADIUS;
+            }
+        }
+        
+        // 绘制克隆玩家
+        for (const clone of clonePlayers) {
+            drawShape((clone.x - playerCenterX) / 0.7 + position.x, 
+                     (clone.y - playerCenterY) / 0.7 + position.y, 0.7);
+        }
+    }
 
     // 绘制光波效果
     if (waveAlpha > 0) {
@@ -701,10 +771,46 @@ function draw(timestamp) {
     requestAnimationFrame(draw);
 }
 
-// 绑定playerControl模块的createPlayerBullet函数，实现玩家子弹创建
+// 绑定playerControl模块的createPlayerBullet函数，实现玩家和克隆玩家子弹创建
 setCreatePlayerBullet((x, y, angle) => {
     bullets.push(new Bullet(x, y, angle));
+    
+    // 克隆玩家也一起攻击(平行攻击)
+    if (cloneAnimationPhase === 2) {
+        for (const clone of clonePlayers) {
+            // 使用与主玩家相同的攻击角度
+            bullets.push(new Bullet(clone.x, clone.y, angle));
+        }
+    }
 });
+
+/**
+ * 创建克隆玩家模型
+ */
+function createClonePlayers() {
+    clonePlayers.length = 0; // 清空现有克隆
+    cloneAnimationPhase = 1; // 开始飞行动画
+    cloneAnimationTimer = 0;
+    
+    // 创建6个克隆玩家，从屏幕边缘不同位置开始
+    for (let i = 0; i < CLONE_COUNT; i++) {
+        const angle = (i / CLONE_COUNT) * Math.PI * 2;
+        const startX = canvas.width / 2 + Math.cos(angle) * 500;
+        const startY = canvas.height / 2 + Math.sin(angle) * 500;
+        
+        clonePlayers.push({
+            x: startX,
+            y: startY,
+            targetX: canvas.width / 2,
+            targetY: canvas.height / 2,
+            angle: angle,
+            rotationAngle: 0
+        });
+    }
+    
+    // 移除点击事件监听，避免重复绑定
+    canvas.onclick = null;
+}
 
 // 启动游戏主循环
 requestAnimationFrame(draw);
