@@ -57,7 +57,7 @@ const CLONE_ANIMATION_DURATION = 120; // 飞行动画帧数
 const CLONE_COUNT = 6; // 克隆数量
 const CLONE_ROTATION_SPEED = 0.02; // 旋转速度
 const CLONE_ROTATION_RADIUS = 100; // 旋转半径
-const CLONE_SPAWN_INTERVAL = 300; // 克隆体生成间隔(帧数)
+const CLONE_SPAWN_INTERVAL = 150; // 克隆体生成间隔(帧数)
 
 // 鼠标按下状态
 let isMouseDown = false;
@@ -387,21 +387,21 @@ function draw(timestamp) {
         ctx.fillStyle = 'white';
         ctx.font = '60px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('游戏结束', canvas.width / 2, canvas.height / 2 - 50);
+        ctx.fillText('是否接受援助？', canvas.width / 2, canvas.height / 2 - 50);
 
         ctx.font = '30px Arial';
 
-        // 是按钮
+        // 否按钮
         ctx.fillStyle = gameOverChoice === 'yes' ? '#ff5555' : '#ff0000';
         ctx.fillRect(canvas.width / 2 - 150, canvas.height / 2 + 20, 120, 50);
         ctx.fillStyle = 'white';
-        ctx.fillText('是', canvas.width / 2 - 90, canvas.height / 2 + 55);
+        ctx.fillText('否', canvas.width / 2 - 90, canvas.height / 2 + 55);
 
-        // 否按钮
+        // 是按钮
         ctx.fillStyle = gameOverChoice === 'no' ? '#55ff55' : '#00ff00';
         ctx.fillRect(canvas.width / 2 + 30, canvas.height / 2 + 20, 120, 50);
         ctx.fillStyle = 'white';
-        ctx.fillText('否', canvas.width / 2 + 90, canvas.height / 2 + 55);
+        ctx.fillText('是', canvas.width / 2 + 90, canvas.height / 2 + 55);
 
         ctx.textAlign = 'left';
 
