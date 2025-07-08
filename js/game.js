@@ -574,27 +574,8 @@ function draw(timestamp) {
         const playerCenterX = position.x * 0.7;
         const playerCenterY = (position.y + 62) * 0.7;
         
-        // 飞行动画阶段
-        if (cloneAnimationPhase === 1) {
-            const progress = Math.min(1, cloneAnimationTimer / CLONE_ANIMATION_DURATION);
-            
-            for (const clone of clonePlayers) {
-                // 更新目标位置为玩家当前位置
-                clone.targetX = playerCenterX;
-                clone.targetY = playerCenterY;
-                
-                clone.x = clone.x + (clone.targetX - clone.x) * 0.1;
-                clone.y = clone.y + (clone.targetY - clone.y) * 0.1;
-            }
-            
-            // 飞行动画结束，进入旋转阶段
-            if (cloneAnimationTimer >= CLONE_ANIMATION_DURATION) {
-                cloneAnimationPhase = 2;
-                cloneAnimationTimer = 0;
-            }
-        }
         // 旋转动画阶段
-        else if (cloneAnimationPhase === 2) {
+        if (cloneAnimationPhase === 2) {
             for (const clone of clonePlayers) {
                 // 更新目标位置为玩家当前位置
                 clone.targetX = playerCenterX;
@@ -792,24 +773,27 @@ setCreatePlayerBullet((x, y, angle) => {
  */
 function createClonePlayers() {
     clonePlayers.length = 0; // 清空现有克隆
-    cloneAnimationPhase = 1; // 开始飞行动画
-    cloneAnimationTimer = 0;
     
-    // 创建6个克隆玩家，从屏幕边缘不同位置开始
+    const playerCenterX = position.x * 0.7;
+    const playerCenterY = (position.y + 62) * 0.7;
+    
+    // 创建6个克隆玩家，直接出现在玩家周围
     for (let i = 0; i < CLONE_COUNT; i++) {
         const angle = (i / CLONE_COUNT) * Math.PI * 2;
-        const startX = canvas.width / 2 + Math.cos(angle) * 500;
-        const startY = canvas.height / 2 + Math.sin(angle) * 500;
         
         clonePlayers.push({
-            x: startX,
-            y: startY,
-            targetX: canvas.width / 2,
-            targetY: canvas.height / 2,
+            x: playerCenterX + Math.cos(angle) * CLONE_ROTATION_RADIUS,
+            y: playerCenterY + Math.sin(angle) * CLONE_ROTATION_RADIUS,
+            targetX: playerCenterX,
+            targetY: playerCenterY,
             angle: angle,
             rotationAngle: 0
         });
     }
+    
+    // 立即开始旋转动画
+    cloneAnimationPhase = 2;
+    cloneAnimationTimer = 0;
     
     // 移除点击事件监听，避免重复绑定
     canvas.onclick = null;
