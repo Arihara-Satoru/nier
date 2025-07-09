@@ -299,9 +299,8 @@ function checkCollisions() {
             // 减少一个克隆体(如果有)
             if (clonePlayers.length > 0) {
                 clonePlayers.pop();
-                clonesSpawned--;
-
                 cloneAnimationPhase = 1;
+                clonesSpawned--;
             }
             
             // 初始化光波效果
@@ -607,7 +606,7 @@ function draw(timestamp) {
                     cloneSpawnTimer = 0;
                 }
             }
-            
+
             // 更新已生成的克隆体位置
             for (let i = 0; i < clonePlayers.length; i++) {
                 const clone = clonePlayers[i];
@@ -620,10 +619,16 @@ function draw(timestamp) {
                 clone.y = clone.y + (targetY - clone.y) * 0.1;
             }
             
-            // 所有克隆体生成完成且飞行动画结束，进入旋转阶段
+            // 所有克隆体生成完成且飞行动画结束，进入旋转阶段且至少等 CLONE_SPAWN_INTERVAL 帧
             if (clonesSpawned >= CLONE_COUNT && cloneAnimationTimer >= CLONE_ANIMATION_DURATION) {
-                cloneAnimationPhase = 2;
-                cloneAnimationTimer = 0;
+                setTimeout(() => {
+                    cloneAnimationPhase = 2;
+                    cloneAnimationTimer = 0;
+                },  CLONE_ANIMATION_DURATION + CLONE_SPAWN_INTERVAL);
+                // 关键补丁：为每个克隆体设置当前 rotationAngle 为0或统一初值
+                for (const clone of clonePlayers) {
+                    clone.rotationAngle = 0; // 或者保留上次的
+                }
             }
         }
         // 旋转动画阶段
@@ -826,7 +831,7 @@ setCreatePlayerBullet((x, y, angle) => {
 // 创建下一个克隆体
 function createNextClone() {
     if (clonesSpawned >= CLONE_COUNT) return;
-    
+    playerHealth++; // 每次生成克隆体增加1点生命值
     const angle = (clonesSpawned / CLONE_COUNT) * Math.PI * 2;
     // 计算最终旋转位置
     const targetX = position.x * 0.7 + Math.cos(angle) * CLONE_ROTATION_RADIUS;
