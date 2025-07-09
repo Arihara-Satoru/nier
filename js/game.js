@@ -71,6 +71,8 @@ let lastFrameTime = performance.now();
 let framesThisSecond = 0;
 let lastFpsUpdate = performance.now();
 
+let hasAssistant = false; // 是否有克隆体协助
+
 // 调试绘制碰撞框(按R键切换)
 let debugCollision = false;
 document.addEventListener('keydown', (e) => {
@@ -294,6 +296,14 @@ function checkCollisions() {
             enemyBullets.splice(i, 1);
             createSmallExplosion(enemyBullet.x, enemyBullet.y, particles, 20);
             
+            // 减少一个克隆体(如果有)
+            if (clonePlayers.length > 0) {
+                clonePlayers.pop();
+                clonesSpawned--;
+
+                cloneAnimationPhase = 1;
+            }
+            
             // 初始化光波效果
             waveRadius = 0;
             waveAlpha = 1.0;
@@ -411,9 +421,10 @@ function draw(timestamp) {
             const mouseX = (e.clientX - rect.left) / rect.width * canvas.width;
             const mouseY = (e.clientY - rect.top) / rect.height * canvas.height;
 
-            // 是按钮区域 - 现在执行重置游戏功能
+            // 否按钮区域 - 现在执行重置游戏功能
             if (mouseX > canvas.width / 2 - 150 && mouseX < canvas.width / 2 - 30 &&
                 mouseY > canvas.height / 2 + 20 && mouseY < canvas.height / 2 + 70) {
+                hasAssistant = false;
                 // 重置游戏状态
                 playerHealth = 3;
                 gameOver = false;
@@ -427,13 +438,18 @@ function draw(timestamp) {
                 spawnWave();
                 lastWaveTime = performance.now();
 
+                // 清空克隆玩家
+                clonePlayers.length = 0;
+
                 // 移除点击事件监听，避免重复绑定
                 canvas.onclick = null;
             }
 
-            // 否按钮区域 - 添加召唤克隆玩家功能
+            // 是按钮区域 - 添加召唤克隆玩家功能
             if (mouseX > canvas.width / 2 + 30 && mouseX < canvas.width / 2 + 150 &&
                 mouseY > canvas.height / 2 + 20 && mouseY < canvas.height / 2 + 70) {
+                // 设置克隆体协助状态
+                hasAssistant = true;
                 // 创建6个克隆玩家
                 createClonePlayers();
                 // 重置游戏状态
@@ -572,6 +588,10 @@ function draw(timestamp) {
     // 处理克隆玩家动画
     if (cloneAnimationPhase > 0) {
         cloneAnimationTimer++;
+
+        if(hasAssistant){
+            hitCount = 0; // 重置受伤计数
+        }
         
         // 更新所有克隆玩家的目标位置为玩家当前位置
         const playerCenterX = position.x * 0.7;
@@ -838,7 +858,9 @@ function createClonePlayers() {
     cloneAnimationTimer = 0;
     
     // 创建第一个克隆体
-    createNextClone();
+    setTimeout(() => {
+        createNextClone();
+    }, 1000);
     
     // 移除点击事件监听，避免重复绑定
     canvas.onclick = null;
